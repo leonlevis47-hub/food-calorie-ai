@@ -15,99 +15,61 @@ export default {
     if (request.method === "POST" && url.pathname === "/analyze") {
       try {
         const body = await request.json();
-        const apiKey = env.GEMINI_API_KEY;
+        const apiKey = env.OPENROUTER_API_KEY; // ใช้ Key จาก OpenRouter
 
         if (!apiKey) {
           return Response.json(
-            { error: "ยังไม่ได้ตั้งค่า GEMINI_API_KEY ใน Cloudflare Settings" },
+            { error: "ยังไม่ได้ตั้งค่า OPENROUTER_API_KEY ใน Cloudflare" },
             { status: 500, headers: corsHeaders }
           );
         }
 
-        const promptText = `วิเคราะห์ภาพอาหารนี้แล้วตอบกลับในรูปแบบ JSON เท่านั้น โดยต้องมีโครงสร้างข้อมูลดังนี้:
+        const promptText = `วิเคราะห์ภาพอาหารนี้แล้วตอบกลับในรูปแบบ JSON เท่านั้น โครงสร้างดังนี้:
 {
   "calories": "xxx kcal",
   "protein": "xx g",
   "carbs": "xx g",
   "fat": "xx g",
-  "details": "ระบุชื่อเมนูอาหาร สรุปโภชนาการ และคำแนะนำสุขภาพสั้นๆ เป็นภาษาไทย"
+  "details": "ระบุชื่อเมนูและสรุปโภชนาการสั้นๆ"
 }`;
 
-        // ลิสต์โมเดลที่เสถียรตามลำดับ
-        const models = [
-          "gemini-1.5-flash",
-          "gemini-1.5-flash-8b",
-          "gemini-1.5-pro"
-        ];
-
-        let finalData = null;
-        let lastErrorMessage = "";
-
-        // ฟังก์ชันช่วยสลีปเพื่อรอให้ Rate limit คลายตัว
-        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-        // ลองวนลูปโมเดล และลองซ้ำแบบ Auto-Retry
-        modelLoop: for (const model of models) {
-          for (let attempt = 1; attempt <= 2; attempt++) {
-            try {
-              const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-              
-              const response = await fetch(apiEndpoint, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  contents: [{
-                    parts: [
-                      { text: promptText },
-                      {
-                        inline_data: {
-                          mime_type: body.mimeType || "image/jpeg",
-                          data: body.image
-                        }
-                      }
-                    ]
-                  }],
-                  generationConfig: {
-                    temperature: 0.2,
-                    response_mime_type: "application/json"
+        // เรียกผ่าน OpenRouter (ใช้ Gemini 1.5 Flash ผ่านระบบที่เสถียรกว่า)
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "google/gemini-flash-1.5",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: promptText },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: `data:${body.mimeType || "image/jpeg"};base64,${body.image}`
+                    }
                   }
-                })
-              });
-
-              const resData = await response.json();
-
-              if (response.ok && !resData.error) {
-                const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                const jsonString = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-                
-                try {
-                  finalData = JSON.parse(jsonString);
-                } catch(e) {
-                  finalData = { calories: "-", protein: "-", carbs: "-", fat: "-", details: rawText };
-                }
-                break modelLoop; // สำเร็จแล้ว หลุดจากทุกลูปทันที
-              } else {
-                lastErrorMessage = resData.error?.message || "High Demand";
-                // ถ้าติด High Demand หรือ Rate Limit ให้หยุดรอ 1.2 วินาทีแล้วลองซ้ำ
-                if (response.status === 429 || lastErrorMessage.includes("demand")) {
-                  await sleep(1200);
-                } else {
-                  break; // ถ้าเป็น Error อื่นให้เปลี่ยนโมเดลถัดไป
-                }
+                ]
               }
-            } catch (err) {
-              lastErrorMessage = err.message;
-              await sleep(1000);
-            }
-          }
-        }
+            ],
+            response_format: { type: "json_object" }
+          })
+        });
 
-        if (finalData) {
-          return Response.json({ data: finalData }, { headers: corsHeaders });
+        const resData = await response.json();
+
+        if (response.ok && resData.choices?.[0]?.message?.content) {
+          const rawText = resData.choices[0].message.content;
+          const parsedData = JSON.parse(rawText);
+          return Response.json({ data: parsedData }, { headers: corsHeaders });
         } else {
           return Response.json(
-            { error: "ระบบ AI กำลังมีผู้ใช้งานหนาแน่น กรุณากดปุ่มวิเคราะห์อีกครั้งในอีก 2-3 วินาที" },
-            { status: 503, headers: corsHeaders }
+            { error: resData.error?.message || "เกิดข้อผิดพลาดในการวิเคราะห์" },
+            { status: 400, headers: corsHeaders }
           );
         }
 
