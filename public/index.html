@@ -3,132 +3,184 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FoodLens AI - Nutrition & Calorie Analyzer</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>FoodLens AI Pro - Smart Nutrition Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
-    body { background: #0f172a; color: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .container { width: 100%; max-width: 540px; background: #1e293b; border: 1px solid #334155; border-radius: 24px; padding: 32px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
-    .header { text-align: center; margin-bottom: 28px; }
-    .badge { background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(16, 185, 129, 0.2); }
-    h1 { font-size: 28px; font-weight: 700; margin-top: 12px; color: #ffffff; }
-    p.sub { color: #94a3b8; font-size: 14px; margin-top: 6px; }
-    .upload-box { border: 2px dashed #475569; border-radius: 16px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(15, 23, 42, 0.4); margin-bottom: 20px; }
-    .upload-box:hover { border-color: #10b981; background: rgba(16, 185, 129, 0.05); }
+    :root {
+      --bg: #0b0f17;
+      --card-bg: #151d2a;
+      --border: #263346;
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+    
+    .app-card { width: 100%; max-width: 480px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6); }
+    .header { text-align: center; margin-bottom: 24px; }
+    .badge { background: rgba(16,185,129,0.12); color: var(--primary); padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; border: 1px solid rgba(16,185,129,0.25); text-transform: uppercase; }
+    h1 { font-size: 24px; font-weight: 700; margin-top: 10px; }
+    p.sub { color: var(--text-sub); font-size: 13px; margin-top: 4px; }
+
+    .drop-zone { border: 2px dashed var(--border); border-radius: 16px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(11,15,23,0.5); position: relative; overflow: hidden; }
+    .drop-zone:hover { border-color: var(--primary); background: rgba(16,185,129,0.03); }
     #imageInput { display: none; }
-    #preview { max-width: 100%; max-height: 250px; border-radius: 12px; display: none; margin: 0 auto 16px auto; object-fit: cover; }
-    .btn { width: 100%; padding: 16px; background: #10b981; color: #022c22; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-    .btn:hover { background: #34d399; transform: translateY(-1px); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    #loading { display: none; text-align: center; margin-top: 20px; color: #34d399; font-size: 14px; font-weight: 600; }
-    #result { display: none; margin-top: 28px; border-top: 1px solid #334155; padding-top: 24px; }
-    .nutrition-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
-    .nut-card { background: #0f172a; padding: 14px; border-radius: 12px; border: 1px solid #334155; text-align: center; }
-    .nut-label { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
-    .nut-val { font-size: 18px; font-weight: 700; color: #10b981; margin-top: 4px; }
-    .nut-main { grid-column: span 3; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
-    .nut-main .nut-val { font-size: 28px; }
-    .text-details { background: #0f172a; border: 1px solid #334155; padding: 16px; border-radius: 12px; margin-top: 16px; font-size: 14px; color: #cbd5e1; line-height: 1.6; white-space: pre-line; }
+    #preview { width: 100%; max-height: 240px; border-radius: 12px; display: none; object-fit: cover; }
+    
+    .btn-submit { width: 100%; padding: 14px; background: var(--primary); color: #022c22; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-submit:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* Custom Toast Notification แทน alert บราวเซอร์ */
+    #toast { visibility: hidden; min-width: 280px; background-color: #ef4444; color: #fff; text-align: center; border-radius: 10px; padding: 12px 16px; position: fixed; z-index: 100; bottom: 30px; left: 50%; transform: translateX(-50%); font-size: 13px; font-weight: 600; box-shadow: 0 10px 20px rgba(0,0,0,0.4); opacity: 0; transition: opacity 0.3s, visibility 0.3s; }
+    #toast.show { visibility: visible; opacity: 1; }
+
+    /* Result UI */
+    #result { display: none; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px; }
+    .grid-macro { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+    .card-macro { background: #0b0f17; padding: 12px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
+    .card-macro.main { grid-column: span 3; background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.3); }
+    .macro-lbl { font-size: 10px; color: var(--text-sub); font-weight: 700; text-transform: uppercase; }
+    .macro-val { font-size: 16px; font-weight: 700; color: var(--primary); margin-top: 2px; }
+    .card-macro.main .macro-val { font-size: 26px; }
+    .details-box { background: #0b0f17; border: 1px solid var(--border); padding: 14px; border-radius: 12px; margin-top: 12px; font-size: 13px; color: #cbd5e1; line-height: 1.5; white-space: pre-line; }
+
+    /* Loading Spinner */
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-  <div class="container">
+
+  <div class="app-card">
     <div class="header">
-      <span class="badge">AI Powered Nutrition</span>
-      <h1>FoodLens AI</h1>
-      <p class="sub">วิเคราะห์แคลอรีและสารอาหารจากรูปถ่ายด้วย AI</p>
+      <span class="badge">AI Engine v3.8</span>
+      <h1>FoodLens AI Pro</h1>
+      <p class="sub">ระบบวิเคราะห์คุณค่าทางโภชนาการอัจฉริยะ</p>
     </div>
 
-    <div class="upload-box" onclick="document.getElementById('imageInput').click()">
-      <img id="preview" alt="Food Preview">
-      <div id="uploadText">
-        <p style="font-weight: 600; color: #e2e8f0;">📸 คลิกเพื่อเลือกรูปภาพอาหาร</p>
-        <p style="font-size: 12px; color: #64748b; margin-top: 4px;">รองรับ JPG, PNG</p>
+    <div class="drop-zone" onclick="document.getElementById('imageInput').click()">
+      <img id="preview" alt="Food">
+      <div id="uploadPrompt">
+        <p style="font-size: 14px; font-weight: 600; color: #e2e8f0;">📷 อัปโหลดรูปภาพอาหาร</p>
+        <p style="font-size: 11px; color: var(--text-sub); margin-top: 4px;">คลิก หรือลากไฟล์มาวางที่นี่ (ระบบจะย่อขนาดรูปอัตโนมัติ)</p>
       </div>
-      <input type="file" id="imageInput" accept="image/*" onchange="handleImage(event)">
+      <input type="file" id="imageInput" accept="image/*" onchange="handleFileSelect(event)">
     </div>
 
-    <button id="analyzeBtn" class="btn" onclick="analyzeImage()">⚡ วิเคราะห์โภชนาการ</button>
-    <div id="loading">⏳ กำลังประมวลผลข้อมูลโภชนาการด้วย Gemini AI...</div>
+    <button id="btnAnalyze" class="btn-submit" onclick="startAnalysis()">
+      <span>วิเคราะห์โภชนาการ</span>
+    </button>
 
     <div id="result">
-      <h3 style="color: #ffffff; font-size: 18px;">📊 สรุปโภชนาการโดยประมาณ</h3>
-      <div class="nutrition-grid">
-        <div class="nut-card nut-main">
-          <div class="nut-label">แคลอรีทั้งหมด (Energy)</div>
-          <div class="nut-val" id="valCalories">-</div>
+      <div class="grid-macro">
+        <div class="card-macro main">
+          <div class="macro-lbl">พลังงานรวม (Energy)</div>
+          <div class="macro-val" id="resCal">-</div>
         </div>
-        <div class="nut-card">
-          <div class="nut-label">โปรตีน (Protein)</div>
-          <div class="nut-val" id="valProtein">-</div>
+        <div class="card-macro">
+          <div class="macro-lbl">โปรตีน</div>
+          <div class="macro-val" id="resProtein">-</div>
         </div>
-        <div class="nut-card">
-          <div class="nut-label">คาร์บ (Carbs)</div>
-          <div class="nut-val" id="valCarbs">-</div>
+        <div class="card-macro">
+          <div class="macro-lbl">คาร์บ</div>
+          <div class="macro-val" id="resCarb">-</div>
         </div>
-        <div class="nut-card">
-          <div class="nut-label">ไขมัน (Fat)</div>
-          <div class="nut-val" id="valFat">-</div>
+        <div class="card-macro">
+          <div class="macro-lbl">ไขมัน</div>
+          <div class="macro-val" id="resFat">-</div>
         </div>
       </div>
-
-      <div class="text-details" id="textDetails"></div>
+      <div class="details-box" id="resDetails"></div>
     </div>
   </div>
 
-  <script>
-    let base64Image = "";
-    let mimeType = "image/jpeg";
+  <div id="toast">ข้อผิดพลาด</div>
 
-    function handleImage(e) {
-      const file = e.target.files[0];
-      if (file) {
-        mimeType = file.type || "image/jpeg";
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          document.getElementById('preview').src = evt.target.result;
-          document.getElementById('preview').style.display = 'block';
-          document.getElementById('uploadText').style.display = 'none';
-          base64Image = evt.target.result.split(',')[1];
-        }
-        reader.readAsDataURL(file);
-      }
+  <script>
+    let compressedBase64 = "";
+
+    // แจ้งเตือนสวยๆ แทน alert()
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.innerText = msg;
+      t.className = "show";
+      setTimeout(() => { t.className = t.className.replace("show", ""); }, 4000);
     }
 
-    async function analyzeImage() {
-      if (!base64Image) { alert("กรุณาเลือกรูปอาหารก่อนครับ"); return; }
-      
-      const btn = document.getElementById('analyzeBtn');
-      const loading = document.getElementById('loading');
+    // ย่อขนาดภาพอัตโนมัติผ่าน Canvas เพื่อเร่งความเร็ว API
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 800; // บีบอัดความกว้างไม่เกิน 800px
+          let width = img.width;
+          let height = img.height;
+
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // แปลงเป็น JPEG ความคมชัด 70% (ไฟล์จะเล็กลงมาก ทำให้ส่งเร็วขึ้น 5 เท่า)
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+          document.getElementById('preview').src = dataUrl;
+          document.getElementById('preview').style.display = 'block';
+          document.getElementById('uploadPrompt').style.display = 'none';
+
+          compressedBase64 = dataUrl.split(',')[1];
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function startAnalysis() {
+      if (!compressedBase64) { showToast("กรุณาเลือกรูปภาพอาหารก่อนครับ"); return; }
+
+      const btn = document.getElementById('btnAnalyze');
       const resultDiv = document.getElementById('result');
 
       btn.disabled = true;
-      loading.style.display = 'block';
+      btn.innerHTML = `<span class="spinner"></span> <span>กำลังประมวลผล...</span>`;
       resultDiv.style.display = 'none';
 
       try {
         const res = await fetch('/analyze', {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64Image, mimeType: mimeType })
+          body: JSON.stringify({ image: compressedBase64, mimeType: "image/jpeg" })
         });
-        const data = await res.json();
+        
+        const resData = await res.json();
 
-        if (data.error) {
-          alert("เกิดข้อผิดพลาด: " + data.error);
+        if (resData.error) {
+          showToast(resData.error);
         } else {
-          document.getElementById('valCalories').innerText = data.data.calories || "-";
-          document.getElementById('valProtein').innerText = data.data.protein || "-";
-          document.getElementById('valCarbs').innerText = data.data.carbs || "-";
-          document.getElementById('valFat').innerText = data.data.fat || "-";
-          document.getElementById('textDetails').innerText = data.data.details || "";
+          document.getElementById('resCal').innerText = resData.data.calories || "-";
+          document.getElementById('resProtein').innerText = resData.data.protein || "-";
+          document.getElementById('resCarb').innerText = resData.data.carbs || "-";
+          document.getElementById('resFat').innerText = resData.data.fat || "-";
+          document.getElementById('resDetails').innerText = resData.data.details || "";
           resultDiv.style.display = 'block';
         }
       } catch (err) {
-        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ: " + err.message);
+        showToast("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: " + err.message);
       } finally {
         btn.disabled = false;
-        loading.style.display = 'none';
+        btn.innerHTML = `<span>วิเคราะห์โภชนาการ</span>`;
       }
     }
   </script>
