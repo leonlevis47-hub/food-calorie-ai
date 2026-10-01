@@ -16,12 +16,12 @@ export default {
       try {
         const body = await request.json();
         
-        // ดึง API Key จากตัวแปรไหนก็ได้ที่มีอยู่ใน Cloudflare
+        // ดึงจากตัวแปรชื่อไหนก็ได้ที่ตั้งไว้ใน Cloudflare
         const apiKey = env.OPENROUTER_API_KEY || env.GEMINI_API_KEY;
 
         if (!apiKey) {
           return Response.json(
-            { error: "ยังไม่ได้ตั้งค่า OPENROUTER_API_KEY ใน Cloudflare Settings" },
+            { error: "กรุณาตั้งค่า API Key ใน Cloudflare Settings -> Variables" },
             { status: 500, headers: corsHeaders }
           );
         }
@@ -35,7 +35,7 @@ export default {
   "details": "ระบุชื่อเมนูและสรุปโภชนาการสั้นๆ เป็นภาษาไทย"
 }`;
 
-        // โมเดล Vision ฟรีที่เสถียรที่สุดบน OpenRouter
+        // โมเดลเสถียรบน OpenRouter
         const openRouterModels = [
           "google/gemini-2.0-flash-001",
           "google/gemini-1.5-flash",
