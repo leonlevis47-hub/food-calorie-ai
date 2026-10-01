@@ -30,68 +30,84 @@ export default {
   "protein": "xx g",
   "carbs": "xx g",
   "fat": "xx g",
-  "details": "บอกชื่อเมนูอาหาร สรุปสารอาหาร และคำแนะนำด้านสุขภาพสั้นๆ เป็นภาษาไทย"
+  "details": "ระบุชื่อเมนูอาหาร สรุปโภชนาการ และคำแนะนำสุขภาพสั้นๆ เป็นภาษาไทย"
 }`;
 
-        // ลิสต์โมเดลเรียงตามลำดับ เพื่อทำระบบ Auto-Fallback 100%
+        // ลิสต์โมเดลที่เสถียรตามลำดับ
         const models = [
-          "gemini-2.0-flash",
           "gemini-1.5-flash",
+          "gemini-1.5-flash-8b",
           "gemini-1.5-pro"
         ];
 
-        let resData = null;
-        let response = null;
-        let lastError = "";
+        let finalData = null;
+        let lastErrorMessage = "";
 
-        for (const model of models) {
-          try {
-            response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [{
-                  parts: [
-                    { text: promptText },
-                    {
-                      inline_data: {
-                        mime_type: body.mimeType || "image/jpeg",
-                        data: body.image
+        // ฟังก์ชันช่วยสลีปเพื่อรอให้ Rate limit คลายตัว
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        // ลองวนลูปโมเดล และลองซ้ำแบบ Auto-Retry
+        modelLoop: for (const model of models) {
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+              
+              const response = await fetch(apiEndpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{
+                    parts: [
+                      { text: promptText },
+                      {
+                        inline_data: {
+                          mime_type: body.mimeType || "image/jpeg",
+                          data: body.image
+                        }
                       }
-                    }
-                  ]
-                }]
-              })
-            });
+                    ]
+                  }],
+                  generationConfig: {
+                    temperature: 0.2,
+                    response_mime_type: "application/json"
+                  }
+                })
+              });
 
-            resData = await response.json();
+              const resData = await response.json();
 
-            // ถ้าประมวลผลสำเร็จ หลุดออกจากลูปทันที
-            if (response.ok && !resData.error) {
-              break;
-            } else if (resData.error) {
-              lastError = resData.error.message;
+              if (response.ok && !resData.error) {
+                const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                const jsonString = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+                
+                try {
+                  finalData = JSON.parse(jsonString);
+                } catch(e) {
+                  finalData = { calories: "-", protein: "-", carbs: "-", fat: "-", details: rawText };
+                }
+                break modelLoop; // สำเร็จแล้ว หลุดจากทุกลูปทันที
+              } else {
+                lastErrorMessage = resData.error?.message || "High Demand";
+                // ถ้าติด High Demand หรือ Rate Limit ให้หยุดรอ 1.2 วินาทีแล้วลองซ้ำ
+                if (response.status === 429 || lastErrorMessage.includes("demand")) {
+                  await sleep(1200);
+                } else {
+                  break; // ถ้าเป็น Error อื่นให้เปลี่ยนโมเดลถัดไป
+                }
+              }
+            } catch (err) {
+              lastErrorMessage = err.message;
+              await sleep(1000);
             }
-          } catch (e) {
-            lastError = e.message;
           }
         }
 
-        if (response && response.ok && !resData.error) {
-          const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          const jsonString = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-          let parsedData = {};
-          try {
-            parsedData = JSON.parse(jsonString);
-          } catch(e) {
-            parsedData = { calories: "-", protein: "-", carbs: "-", fat: "-", details: rawText };
-          }
-
-          return Response.json({ data: parsedData }, { headers: corsHeaders });
+        if (finalData) {
+          return Response.json({ data: finalData }, { headers: corsHeaders });
         } else {
           return Response.json(
-            { error: lastError || "เซิร์ฟเวอร์ AI มีผู้ใช้จำนวนมาก กรุณากดลองใหม่อีกครั้ง" },
-            { status: 400, headers: corsHeaders }
+            { error: "ระบบ AI กำลังมีผู้ใช้งานหนาแน่น กรุณากดปุ่มวิเคราะห์อีกครั้งในอีก 2-3 วินาที" },
+            { status: 503, headers: corsHeaders }
           );
         }
 
@@ -100,7 +116,6 @@ export default {
       }
     }
 
-    // ส่งต่อ Assets หน้าเว็บ
     if (env.ASSETS) {
       return env.ASSETS.fetch(request);
     }
