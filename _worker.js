@@ -15,11 +15,12 @@ export default {
     if (request.method === "POST" && url.pathname === "/analyze") {
       try {
         const body = await request.json();
-        const apiKey = env.OPENROUTER_API_KEY;
+        // ดึงจาก OPENROUTER_API_KEY หรือ GEMINI_API_KEY เผื่อไว้ทั้งคู่
+        const apiKey = env.OPENROUTER_API_KEY || env.GEMINI_API_KEY;
 
         if (!apiKey) {
           return Response.json(
-            { error: "ยังไม่ได้ตั้งค่า OPENROUTER_API_KEY ใน Cloudflare" },
+            { error: "ยังไม่ได้ตั้งค่า API Key ใน Cloudflare Settings" },
             { status: 500, headers: corsHeaders }
           );
         }
@@ -33,7 +34,6 @@ export default {
   "details": "ระบุชื่อเมนูและสรุปโภชนาการสั้นๆ"
 }`;
 
-        // ลิสต์โมเดลชื่อที่ถูกต้องบน OpenRouter (มีระบบลองสำรองให้อัตโนมัติ)
         const openRouterModels = [
           "google/gemini-2.0-flash-001",
           "google/gemini-1.5-flash",
@@ -54,7 +54,7 @@ export default {
                 "X-Title": "FoodLens AI"
               },
               body: JSON.stringify({
-                model: modelName, // << ชื่อโมเดลที่ถูกต้องตาม Spec ของ OpenRouter
+                model: modelName,
                 messages: [
                   {
                     role: "user",
@@ -83,7 +83,7 @@ export default {
               } catch (e) {
                 finalParsedData = { calories: "-", protein: "-", carbs: "-", fat: "-", details: rawText };
               }
-              break; // ทำงานสำเร็จให้ออกจากลูปทันที
+              break;
             } else {
               lastErrorMsg = resData.error?.message || "Model failed";
             }
