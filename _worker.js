@@ -12,7 +12,6 @@ export default {
 
     const url = new URL(request.url);
 
-    // 1. API Endpoint สำหรับประมวลผลรูปภาพ (POST /analyze)
     if (request.method === "POST" && url.pathname === "/analyze") {
       try {
         const body = await request.json();
@@ -25,13 +24,14 @@ export default {
           );
         }
 
-        const promptText = `วิเคราะห์ภาพอาหารนี้แล้วตอบกลับในรูปแบบ JSON เท่านั้น โดยต้องมีโครงสร้างข้อมูลดังนี้:
+        // Prompt แบบสั้น กระชับ เพื่อให้ประมวลผลเร็วที่สุด
+        const promptText = `วิเคราะห์อาหารในภาพ แล้วตอบเฉพาะ JSON โครงสร้างนี้เท่านั้น:
 {
   "calories": "xxx kcal",
   "protein": "xx g",
   "carbs": "xx g",
   "fat": "xx g",
-  "details": "บอกชื่อเมนูอาหาร สรุปโภชนาการ โซเดียม น้ำตาล และคำแนะนำด้านสุขภาพสั้นๆ เป็นภาษาไทย"
+  "details": "ชื่อเมนู + สรุปสารอาหารกระชับ 2-3 บรรทัด"
 }`;
 
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
@@ -67,7 +67,7 @@ export default {
           return Response.json({ data: parsedData }, { headers: corsHeaders });
         } else {
           return Response.json(
-            { error: resData.error ? resData.error.message : "เรียกใช้งาน Gemini API ไม่สำเร็จ" },
+            { error: resData.error ? resData.error.message : "ระบบ AI กำลังมีผู้ใช้งานจำนวนมาก กรุณาลองใหม่อีกครั้ง" },
             { status: 400, headers: corsHeaders }
           );
         }
@@ -77,7 +77,6 @@ export default {
       }
     }
 
-    // 2. ถ้าดึงหน้าปกติ ให้ส่งต่อ Asset (index.html ใน public)
     if (env.ASSETS) {
       return env.ASSETS.fetch(request);
     }
