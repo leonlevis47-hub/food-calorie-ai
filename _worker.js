@@ -24,37 +24,60 @@ export default {
           );
         }
 
-        // Prompt แบบสั้น กระชับ เพื่อให้ประมวลผลเร็วที่สุด
-        const promptText = `วิเคราะห์อาหารในภาพ แล้วตอบเฉพาะ JSON โครงสร้างนี้เท่านั้น:
+        const promptText = `วิเคราะห์ภาพอาหารนี้แล้วตอบกลับในรูปแบบ JSON เท่านั้น โดยต้องมีโครงสร้างข้อมูลดังนี้:
 {
   "calories": "xxx kcal",
   "protein": "xx g",
   "carbs": "xx g",
   "fat": "xx g",
-  "details": "ชื่อเมนู + สรุปสารอาหารกระชับ 2-3 บรรทัด"
+  "details": "บอกชื่อเมนูอาหาร สรุปสารอาหาร และคำแนะนำด้านสุขภาพสั้นๆ เป็นภาษาไทย"
 }`;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: promptText },
-                {
-                  inline_data: {
-                    mime_type: body.mimeType || "image/jpeg",
-                    data: body.image
-                  }
-                }
-              ]
-            }]
-          })
-        });
+        // ลิสต์โมเดลเรียงตามลำดับ เพื่อทำระบบ Auto-Fallback 100%
+        const models = [
+          "gemini-2.0-flash",
+          "gemini-1.5-flash",
+          "gemini-1.5-pro"
+        ];
 
-        const resData = await response.json();
+        let resData = null;
+        let response = null;
+        let lastError = "";
 
-        if (response.ok && !resData.error) {
+        for (const model of models) {
+          try {
+            response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    { text: promptText },
+                    {
+                      inline_data: {
+                        mime_type: body.mimeType || "image/jpeg",
+                        data: body.image
+                      }
+                    }
+                  ]
+                }]
+              })
+            });
+
+            resData = await response.json();
+
+            // ถ้าประมวลผลสำเร็จ หลุดออกจากลูปทันที
+            if (response.ok && !resData.error) {
+              break;
+            } else if (resData.error) {
+              lastError = resData.error.message;
+            }
+          } catch (e) {
+            lastError = e.message;
+          }
+        }
+
+        if (response && response.ok && !resData.error) {
           const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
           const jsonString = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
           let parsedData = {};
@@ -67,7 +90,7 @@ export default {
           return Response.json({ data: parsedData }, { headers: corsHeaders });
         } else {
           return Response.json(
-            { error: resData.error ? resData.error.message : "ระบบ AI กำลังมีผู้ใช้งานจำนวนมาก กรุณาลองใหม่อีกครั้ง" },
+            { error: lastError || "เซิร์ฟเวอร์ AI มีผู้ใช้จำนวนมาก กรุณากดลองใหม่อีกครั้ง" },
             { status: 400, headers: corsHeaders }
           );
         }
@@ -77,6 +100,7 @@ export default {
       }
     }
 
+    // ส่งต่อ Assets หน้าเว็บ
     if (env.ASSETS) {
       return env.ASSETS.fetch(request);
     }
