@@ -33,7 +33,7 @@ export default {
   "details": "ระบุชื่อเมนูและสรุปโภชนาการสั้นๆ เป็นภาษาไทย"
 }`;
 
-        // ใช้ชื่อโมเดลตามที่ OpenRouter ให้บริการจริง
+        // ใช้โมเดล Vision ที่เสถียรของ OpenRouter โดยตรง
         const openRouterModels = [
           "google/gemini-2.0-flash-exp:free",
           "google/gemini-flash-1.5-8b",
