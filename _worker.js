@@ -15,13 +15,11 @@ export default {
     if (request.method === "POST" && url.pathname === "/analyze") {
       try {
         const body = await request.json();
-        
-        // ดึงจากตัวแปรชื่อไหนก็ได้ที่ตั้งไว้ใน Cloudflare
         const apiKey = env.OPENROUTER_API_KEY || env.GEMINI_API_KEY;
 
         if (!apiKey) {
           return Response.json(
-            { error: "กรุณาตั้งค่า API Key ใน Cloudflare Settings -> Variables" },
+            { error: "ยังไม่ได้ตั้งค่า API Key ใน Cloudflare Settings" },
             { status: 500, headers: corsHeaders }
           );
         }
@@ -35,11 +33,11 @@ export default {
   "details": "ระบุชื่อเมนูและสรุปโภชนาการสั้นๆ เป็นภาษาไทย"
 }`;
 
-        // โมเดลเสถียรบน OpenRouter
+        // ใช้ชื่อโมเดลตามที่ OpenRouter ให้บริการจริง
         const openRouterModels = [
-          "google/gemini-2.0-flash-001",
-          "google/gemini-1.5-flash",
-          "meta-llama/llama-3.2-11b-vision-instruct:free"
+          "google/gemini-2.0-flash-exp:free",
+          "google/gemini-flash-1.5-8b",
+          "google/gemini-2.0-flash-lite-preview-02-05:free"
         ];
 
         let finalParsedData = null;
@@ -70,8 +68,7 @@ export default {
                       }
                     ]
                   }
-                ],
-                response_format: { type: "json_object" }
+                ]
               })
             });
 
