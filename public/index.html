@@ -1,188 +1,125 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>FoodLens AI Pro - Smart Mobile Nutrition</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0b0f17;
-      --card: #151d2a;
-      --border: #263346;
-      --primary: #10b981;
-      --primary-active: #059669;
-      --text-main: #f8fafc;
-      --text-sub: #94a3b8;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { background: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 16px; }
-    
-    .app-card { width: 100%; max-width: 440px; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); margin-top: 10px; }
-    .header { text-align: center; margin-bottom: 20px; }
-    .badge { background: rgba(16,185,129,0.12); color: var(--primary); padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 700; border: 1px solid rgba(16,185,129,0.25); text-transform: uppercase; }
-    h1 { font-size: 24px; font-weight: 700; margin-top: 8px; color: #fff; }
-    p.sub { color: var(--text-sub); font-size: 13px; margin-top: 2px; }
+export default {
+  async fetch(request, env, ctx) {
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
 
-    .upload-box { border: 2px dashed var(--border); border-radius: 18px; padding: 20px 16px; text-align: center; cursor: pointer; transition: background 0.2s; background: rgba(11,15,23,0.4); }
-    .upload-box:active { background: rgba(16,185,129,0.08); }
-    #imageInput { display: none; }
-    #preview { width: 100%; max-height: 260px; border-radius: 14px; display: none; object-fit: cover; }
-    
-    .btn-submit { width: 100%; padding: 16px; background: var(--primary); color: #022c22; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16,185,129,0.25); }
-    .btn-submit:active { background: var(--primary-active); transform: scale(0.98); }
-    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-
-    /* Custom Mobile Toast (แจ้งเตือนแบบแบนเนอร์ด้านบน) */
-    #toast { visibility: hidden; width: calc(100% - 32px); max-width: 400px; background-color: #ef4444; color: #fff; text-align: center; border-radius: 14px; padding: 14px 16px; position: fixed; z-index: 1000; top: 20px; left: 50%; transform: translateX(-50%); font-size: 13px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.5); opacity: 0; transition: all 0.3s ease; }
-    #toast.show { visibility: visible; opacity: 1; top: 30px; }
-
-    /* Result Dashboard UI */
-    #result { display: none; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 18px; }
-    .grid-macro { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
-    .card-macro { background: #0b0f17; padding: 12px 8px; border-radius: 14px; border: 1px solid var(--border); text-align: center; }
-    .card-macro.main { grid-column: span 3; background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.3); padding: 16px; }
-    .macro-lbl { font-size: 10px; color: var(--text-sub); font-weight: 700; text-transform: uppercase; }
-    .macro-val { font-size: 16px; font-weight: 700; color: var(--primary); margin-top: 2px; }
-    .card-macro.main .macro-val { font-size: 28px; }
-    .details-box { background: #0b0f17; border: 1px solid var(--border); padding: 14px; border-radius: 14px; margin-top: 10px; font-size: 13px; color: #cbd5e1; line-height: 1.5; white-space: pre-line; }
-
-    .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(0,0,0,.2); border-radius: 50%; border-top-color: #022c22; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
-</head>
-<body>
-
-  <div class="app-card">
-    <div class="header">
-      <span class="badge">Mobile Optimized</span>
-      <h1>FoodLens AI</h1>
-      <p class="sub">ถ่ายภาพเพื่อวิเคราะห์แคลอรีและสารอาหาร</p>
-    </div>
-
-    <div class="upload-box" onclick="document.getElementById('imageInput').click()">
-      <img id="preview" alt="Food Preview">
-      <div id="uploadPrompt">
-        <p style="font-size: 16px; font-weight: 600; color: #e2e8f0;">📷 แตะเพื่อถ่ายภาพ / เลือกรูป</p>
-        <p style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">รองรับรูปภาพจากกล้องมือถือทุกรุ่น</p>
-      </div>
-      <!-- เพิ่ม capture="environment" สำหรับเปิดกล้องหลังมือถือทันที -->
-      <input type="file" id="imageInput" accept="image/*" capture="environment" onchange="handleFileSelect(event)">
-    </div>
-
-    <button id="btnAnalyze" class="btn-submit" onclick="startAnalysis()">
-      <span>⚡ วิเคราะห์โภชนาการ</span>
-    </button>
-
-    <div id="result">
-      <h3 style="color: #fff; font-size: 15px;">📊 สรุปโภชนาการ</h3>
-      <div class="grid-macro">
-        <div class="card-macro main">
-          <div class="macro-lbl">พลังงานรวม (Energy)</div>
-          <div class="macro-val" id="resCal">-</div>
-        </div>
-        <div class="card-macro">
-          <div class="macro-lbl">โปรตีน</div>
-          <div class="macro-val" id="resProtein">-</div>
-        </div>
-        <div class="card-macro">
-          <div class="macro-lbl">คาร์บ</div>
-          <div class="macro-val" id="resCarb">-</div>
-        </div>
-        <div class="card-macro">
-          <div class="macro-lbl">ไขมัน</div>
-          <div class="macro-val" id="resFat">-</div>
-        </div>
-      </div>
-      <div class="details-box" id="resDetails"></div>
-    </div>
-  </div>
-
-  <div id="toast">แจ้งเตือนระบบ</div>
-
-  <script>
-    let compressedBase64 = "";
-
-    function showToast(msg) {
-      const t = document.getElementById("toast");
-      t.innerText = msg;
-      t.className = "show";
-      setTimeout(() => { t.className = t.className.replace("show", ""); }, 4000);
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
     }
 
-    // ย่อขนาดรูปภาพมือถือให้อยู่ในขนาด 720px เพื่อให้ส่งผ่านเน็ตมือถือได้เร็วขึ้น
-    function handleFileSelect(e) {
-      const file = e.target.files[0];
-      if (!file) return;
+    const url = new URL(request.url);
 
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 720;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // บีบอัดเป็น JPEG คุณภาพ 0.65 (ขนาดไฟล์เหลือเพียง 80KB-200KB ส่งเร็วมาก)
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.65);
-          document.getElementById('preview').src = dataUrl;
-          document.getElementById('preview').style.display = 'block';
-          document.getElementById('uploadPrompt').style.display = 'none';
-
-          compressedBase64 = dataUrl.split(',')[1];
-        };
-        img.src = evt.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-
-    async function startAnalysis() {
-      if (!compressedBase64) { showToast("กรุณาเลือกรูปภาพอาหารก่อนครับ"); return; }
-
-      const btn = document.getElementById('btnAnalyze');
-      const resultDiv = document.getElementById('result');
-
-      btn.disabled = true;
-      btn.innerHTML = `<span class="spinner"></span> <span>กำลังวิเคราะห์...</span>`;
-      resultDiv.style.display = 'none';
-
+    if (request.method === "POST" && url.pathname === "/analyze") {
       try {
-        const res = await fetch('/analyze', {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: compressedBase64, mimeType: "image/jpeg" })
-        });
-        
-        const resData = await res.json();
+        const body = await request.json();
+        const apiKey = env.GEMINI_API_KEY;
 
-        if (resData.error) {
-          showToast(resData.error);
-        } else {
-          document.getElementById('resCal').innerText = resData.data.calories || "-";
-          document.getElementById('resProtein').innerText = resData.data.protein || "-";
-          document.getElementById('resCarb').innerText = resData.data.carbs || "-";
-          document.getElementById('resFat').innerText = resData.data.fat || "-";
-          document.getElementById('resDetails').innerText = resData.data.details || "";
-          resultDiv.style.display = 'block';
+        if (!apiKey) {
+          return Response.json(
+            { error: "ยังไม่ได้ตั้งค่า GEMINI_API_KEY ใน Cloudflare Settings" },
+            { status: 500, headers: corsHeaders }
+          );
         }
+
+        const promptText = `วิเคราะห์ภาพอาหารนี้แล้วตอบกลับในรูปแบบ JSON เท่านั้น โดยต้องมีโครงสร้างข้อมูลดังนี้:
+{
+  "calories": "xxx kcal",
+  "protein": "xx g",
+  "carbs": "xx g",
+  "fat": "xx g",
+  "details": "ระบุชื่อเมนูอาหาร สรุปโภชนาการ และคำแนะนำสุขภาพสั้นๆ เป็นภาษาไทย"
+}`;
+
+        // ลิสต์โมเดลที่เสถียรตามลำดับ
+        const models = [
+          "gemini-1.5-flash",
+          "gemini-1.5-flash-8b",
+          "gemini-1.5-pro"
+        ];
+
+        let finalData = null;
+        let lastErrorMessage = "";
+
+        // ฟังก์ชันช่วยสลีปเพื่อรอให้ Rate limit คลายตัว
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        // ลองวนลูปโมเดล และลองซ้ำแบบ Auto-Retry
+        modelLoop: for (const model of models) {
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+              
+              const response = await fetch(apiEndpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{
+                    parts: [
+                      { text: promptText },
+                      {
+                        inline_data: {
+                          mime_type: body.mimeType || "image/jpeg",
+                          data: body.image
+                        }
+                      }
+                    ]
+                  }],
+                  generationConfig: {
+                    temperature: 0.2,
+                    response_mime_type: "application/json"
+                  }
+                })
+              });
+
+              const resData = await response.json();
+
+              if (response.ok && !resData.error) {
+                const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                const jsonString = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+                
+                try {
+                  finalData = JSON.parse(jsonString);
+                } catch(e) {
+                  finalData = { calories: "-", protein: "-", carbs: "-", fat: "-", details: rawText };
+                }
+                break modelLoop; // สำเร็จแล้ว หลุดจากทุกลูปทันที
+              } else {
+                lastErrorMessage = resData.error?.message || "High Demand";
+                // ถ้าติด High Demand หรือ Rate Limit ให้หยุดรอ 1.2 วินาทีแล้วลองซ้ำ
+                if (response.status === 429 || lastErrorMessage.includes("demand")) {
+                  await sleep(1200);
+                } else {
+                  break; // ถ้าเป็น Error อื่นให้เปลี่ยนโมเดลถัดไป
+                }
+              }
+            } catch (err) {
+              lastErrorMessage = err.message;
+              await sleep(1000);
+            }
+          }
+        }
+
+        if (finalData) {
+          return Response.json({ data: finalData }, { headers: corsHeaders });
+        } else {
+          return Response.json(
+            { error: "ระบบ AI กำลังมีผู้ใช้งานหนาแน่น กรุณากดปุ่มวิเคราะห์อีกครั้งในอีก 2-3 วินาที" },
+            { status: 503, headers: corsHeaders }
+          );
+        }
+
       } catch (err) {
-        showToast("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: " + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<span>⚡ วิเคราะห์โภชนาการ</span>`;
+        return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
       }
     }
-  </script>
-</body>
-</html>
+
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request);
+    }
+
+    return new Response("Not Found", { status: 404, headers: corsHeaders });
+  }
+};
